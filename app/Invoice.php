@@ -1,0 +1,17 @@
+<?php
+
+namespace App;
+
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Model;
+
+class Invoice extends Model
+{
+    use HasUuids;
+    protected $fillable = [
+        'id',
+        'customer_name',
+        'customer_email',
+        'status',
+    ];
+}

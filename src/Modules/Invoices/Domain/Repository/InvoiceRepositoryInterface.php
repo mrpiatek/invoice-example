@@ -14,6 +14,4 @@ interface InvoiceRepositoryInterface
     public function save(Invoice $invoice): void;
 
     public function get(InvoiceId $id): Invoice;
-
-    public function find(InvoiceId $id): ?Invoice;
 }
