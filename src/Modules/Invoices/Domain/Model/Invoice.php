@@ -59,11 +59,8 @@ final class Invoice
             id: $id,
             status: $status,
             customer: $customer,
+            lines: $lines
         );
-
-        foreach ($lines as $line) {
-            $invoice->addLine($line);
-        }
 
         return $invoice;
     }

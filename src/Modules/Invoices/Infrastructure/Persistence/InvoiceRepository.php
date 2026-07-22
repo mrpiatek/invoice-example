@@ -5,10 +5,14 @@ declare(strict_types=1);
 namespace Modules\Invoices\Infrastructure\Persistence;
 
 use App\Invoice;
+use App\InvoiceProductLine;
+use Illuminate\Support\Facades\DB;
 use Modules\Invoices\Domain\Enums\StatusEnum;
 use Modules\Invoices\Domain\Model\Customer;
 use Modules\Invoices\Domain\Model\Invoice as InvoiceModel;
 use Modules\Invoices\Domain\Model\InvoiceId;
+use Modules\Invoices\Domain\Model\InvoiceProductLine as InvoiceProductLineModel;
+use Modules\Invoices\Domain\Model\InvoiceProductLineId;
 use Modules\Invoices\Domain\Repository\InvoiceRepositoryInterface;
 use Modules\Invoices\Infrastructure\Exception\InvoiceNotFoundException;
 
@@ -21,16 +25,28 @@ final class InvoiceRepository implements InvoiceRepositoryInterface
 
     public function save(InvoiceModel $invoice): void
     {
-        $entity = Invoice::create(
-            [
-                'id' => $invoice->id,
-                'customer_name' => $invoice->customer->name,
-                'customer_email' => $invoice->customer->email,
-                'status' => $invoice->status,
-            ]
-        );
+        DB::transaction(static function () use ($invoice) {
+            $invoiceEntity = Invoice::updateOrCreate(
+                [
+                    'id' => $invoice->id,
+                    'customer_name' => $invoice->customer->name,
+                    'customer_email' => $invoice->customer->email,
+                    'status' => $invoice->status,
+                ]
+            );
 
-        $entity->save();
+            foreach ($invoice->lines as $lineItem) {
+                $invoiceEntity->lines()->updateOrCreate(
+                    [
+                        'id' => $lineItem->id,
+                        'invoice_id' => $invoice->id,
+                        'name' => $lineItem->productName,
+                        'quantity' => $lineItem->quantity,
+                        'price' => $lineItem->unitPrice,
+                    ]
+                );
+            }
+        });
     }
 
     public function get(InvoiceId $id): InvoiceModel
@@ -42,14 +58,21 @@ final class InvoiceRepository implements InvoiceRepositoryInterface
         }
 
         return InvoiceModel::reconstitute(
-            new InvoiceId($entity->id),
-            StatusEnum::from($entity->status),
-            new Customer(
+            id: new InvoiceId($entity->id),
+            status: StatusEnum::from($entity->status),
+            customer: new Customer(
                 $entity->customer_name,
                 $entity->customer_email,
             ),
-            // TODO load lines
-            []
+            lines: $entity->lines->map(
+                static fn (InvoiceProductLine $lineItem) => InvoiceProductLineModel::reconstitute(
+                    id: new InvoiceProductLineId($lineItem->id),
+                    invoiceId: new InvoiceId($lineItem->invoice_id),
+                    productName: $lineItem->name,
+                    quantity: $lineItem->quantity,
+                    unitPrice: $lineItem->price
+                )
+            )->toArray()
         );
     }
 }

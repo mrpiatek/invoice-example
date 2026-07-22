@@ -14,8 +14,12 @@ final readonly class SendInvoiceHandler
 
     public function handle(SendInvoiceCommand $command): void
     {
-        $this->invoices->get(
+        $invoice = $this->invoices->get(
             $command->invoiceId
-        )->send();
+        );
+
+        $invoice->send();
+
+        $this->invoices->save($invoice);
     }
 }

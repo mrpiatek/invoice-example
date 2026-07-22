@@ -8,10 +8,10 @@ use Override;
 use Ramsey\Uuid\Uuid;
 use Stringable;
 
-final class InvoiceId implements Stringable
+final class InvoiceProductLineId implements Stringable
 {
     public function __construct(
-        private string $invoiceId
+        private string $invoiceProductLineId
     ) {}
 
     public static function generate(): self
@@ -22,6 +22,6 @@ final class InvoiceId implements Stringable
     #[Override]
     public function __toString(): string
     {
-        return $this->invoiceId;
+        return $this->invoiceProductLineId;
     }
 }
