@@ -6,7 +6,7 @@ namespace Modules\Invoices\Domain\Model;
 
 use InvalidArgumentException;
 
-final class InvoiceLine
+final class InvoiceProductLine
 {
     public int $totalPrice {
         get => $this->unitPrice * $this->quantity;

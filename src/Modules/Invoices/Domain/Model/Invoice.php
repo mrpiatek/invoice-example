@@ -13,11 +13,11 @@ final class Invoice
     public int $totalPrice {
         get => (int) array_reduce(
             $this->lines,
-            static fn (?int $carry, InvoiceLine $line) => $carry + $line->totalPrice
+            static fn (?int $carry, InvoiceProductLine $line) => $carry + $line->totalPrice
         );
     }
 
-    /** @param InvoiceLine[] $lines */
+    /** @param InvoiceProductLine[] $lines */
     private function __construct(
         private(set) InvoiceId $id,
         private(set) StatusEnum $status,
@@ -26,7 +26,7 @@ final class Invoice
     ) {}
 
     /**
-     * @param  InvoiceLine[]  $lines
+     * @param  InvoiceProductLine[]  $lines
      */
     public static function create(
         InvoiceId $id,
@@ -47,7 +47,7 @@ final class Invoice
     }
 
     /**
-     * @param  InvoiceLine[]  $lines
+     * @param  InvoiceProductLine[]  $lines
      */
     public static function reconstitute(
         InvoiceId $id,
@@ -68,7 +68,7 @@ final class Invoice
         return $invoice;
     }
 
-    public function addLine(InvoiceLine $line): void
+    public function addLine(InvoiceProductLine $line): void
     {
         if ($this->status !== StatusEnum::Draft) {
             throw new InvalidInvoiceOperationException(

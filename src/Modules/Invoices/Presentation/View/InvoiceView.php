@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Modules\Invoices\Presentation\View;
 
 use Modules\Invoices\Domain\Model\Invoice;
-use Modules\Invoices\Domain\Model\InvoiceLine;
+use Modules\Invoices\Domain\Model\InvoiceProductLine;
 
 final readonly class InvoiceView
 {
@@ -21,7 +21,7 @@ final readonly class InvoiceView
             'customer_name' => $invoice->customer->name,
             'customer_email' => $invoice->customer->email,
             'lines' => array_map(
-                static fn (InvoiceLine $line) => [
+                static fn (InvoiceProductLine $line) => [
                     'product_name' => $line->productName,
                     'quantity' => $line->quantity,
                     'unit_price' => $line->unitPrice,

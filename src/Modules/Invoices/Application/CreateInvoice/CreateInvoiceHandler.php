@@ -7,7 +7,7 @@ namespace Modules\Invoices\Application\CreateInvoice;
 use Modules\Invoices\Domain\Model\Customer;
 use Modules\Invoices\Domain\Model\Invoice;
 use Modules\Invoices\Domain\Model\InvoiceId;
-use Modules\Invoices\Domain\Model\InvoiceLine;
+use Modules\Invoices\Domain\Model\InvoiceProductLine;
 use Modules\Invoices\Domain\Repository\InvoiceRepositoryInterface;
 
 final readonly class CreateInvoiceHandler
@@ -21,7 +21,7 @@ final readonly class CreateInvoiceHandler
         $id = $this->invoices->nextIdentity();
 
         $lines = array_map(
-            static fn (array $line) => new InvoiceLine(
+            static fn (array $line) => new InvoiceProductLine(
                 productName: $line['product_name'],
                 quantity: (int) $line['quantity'],
                 unitPrice: (int) $line['unit_price']

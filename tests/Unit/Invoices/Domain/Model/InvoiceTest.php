@@ -8,7 +8,7 @@ use Modules\Invoices\Domain\Exception\InvalidInvoiceStatusTransitionException;
 use Modules\Invoices\Domain\Model\Customer;
 use Modules\Invoices\Domain\Model\Invoice;
 use Modules\Invoices\Domain\Model\InvoiceId;
-use Modules\Invoices\Domain\Model\InvoiceLine;
+use Modules\Invoices\Domain\Model\InvoiceProductLine;
 use PHPUnit\Framework\TestCase;
 
 class InvoiceTest extends TestCase
@@ -44,7 +44,7 @@ class InvoiceTest extends TestCase
             InvoiceId::generate(),
             new Customer('Jane', 'jane@example.com'),
             [
-                new InvoiceLine(
+                new InvoiceProductLine(
                     'Laptop',
                     1,
                     1200
@@ -90,7 +90,7 @@ class InvoiceTest extends TestCase
             InvoiceId::generate(),
             new Customer('Jane', 'jane@example.com'),
             [
-                new InvoiceLine(
+                new InvoiceProductLine(
                     'Laptop',
                     1,
                     1200
@@ -124,7 +124,7 @@ class InvoiceTest extends TestCase
 
         $invoice->send();
 
-        $invoice->addLine(new InvoiceLine(
+        $invoice->addLine(new InvoiceProductLine(
             'Laptop',
             1,
             1200
@@ -143,7 +143,7 @@ class InvoiceTest extends TestCase
         $invoice = Invoice::create(
             InvoiceId::generate(),
             new Customer('Jane', 'jane@example.com'),
-            [new InvoiceLine(
+            [new InvoiceProductLine(
                 'Schrodinger\'s Laptop',
                 0,
                 1200
@@ -157,7 +157,7 @@ class InvoiceTest extends TestCase
         $invoice = Invoice::create(
             InvoiceId::generate(),
             new Customer('Jane', 'jane@example.com'),
-            [new InvoiceLine(
+            [new InvoiceProductLine(
                 'Free Laptop',
                 1,
                 0
@@ -175,7 +175,7 @@ class InvoiceTest extends TestCase
             InvoiceId::generate(),
             new Customer('Jane', 'jane@example.com'),
             [
-                new InvoiceLine(
+                new InvoiceProductLine(
                     'Laptop',
                     1,
                     1200
@@ -187,7 +187,7 @@ class InvoiceTest extends TestCase
 
         $this->expectException(InvalidInvoiceOperationException::class);
 
-        $invoice->addLine(new InvoiceLine(
+        $invoice->addLine(new InvoiceProductLine(
             'Another Laptop',
             1,
             1300
@@ -200,12 +200,12 @@ class InvoiceTest extends TestCase
             InvoiceId::generate(),
             new Customer('Jane', 'jane@example.com'),
             [
-                new InvoiceLine(
+                new InvoiceProductLine(
                     'Accessories',
                     4,
                     45
                 ),
-                new InvoiceLine(
+                new InvoiceProductLine(
                     'Laptop',
                     1,
                     1200
