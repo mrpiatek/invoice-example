@@ -46,6 +46,28 @@ final class Invoice
         return $invoice;
     }
 
+    /**
+     * @param  InvoiceLine[]  $lines
+     */
+    public static function reconstitute(
+        InvoiceId $id,
+        StatusEnum $status,
+        Customer $customer,
+        array $lines = [],
+    ): self {
+        $invoice = new self(
+            id: $id,
+            status: $status,
+            customer: $customer,
+        );
+
+        foreach ($lines as $line) {
+            $invoice->addLine($line);
+        }
+
+        return $invoice;
+    }
+
     public function addLine(InvoiceLine $line): void
     {
         if ($this->status !== StatusEnum::Draft) {
