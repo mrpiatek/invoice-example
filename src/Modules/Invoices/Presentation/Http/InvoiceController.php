@@ -12,6 +12,7 @@ use Modules\Invoices\Application\GetInvoice\GetInvoiceHandler;
 use Modules\Invoices\Application\GetInvoice\GetInvoiceQuery;
 use Modules\Invoices\Application\SendInvoice\SendInvoiceCommand;
 use Modules\Invoices\Application\SendInvoice\SendInvoiceHandler;
+use Modules\Invoices\Domain\Exception\InvalidInvoiceOperationException;
 use Modules\Invoices\Domain\Exception\InvalidInvoiceStatusTransitionException;
 use Modules\Invoices\Domain\Model\InvoiceId;
 use Modules\Invoices\Infrastructure\Exception\InvoiceNotFoundException;
@@ -29,12 +30,20 @@ final readonly class InvoiceController
 
     public function create(Request $request): JsonResponse
     {
-        $input = $request->all();
+        $validated = $request->validate([
+            'customer_name' => 'required|string|max:255',
+            'customer_email' => 'required|string|max:255|email',
+            'lines' => 'array',
+            'lines.*.product_name' => 'required|string|max:255',
+            'lines.*.quantity' => 'required|integer|between:0,2147483647', // 4 byte signed int
+            'lines.*.unit_price' => 'required|integer|between:0,2147483647', // 4 byte signed int
+        ]);
+
         $invoiceId = $this->createInvoiceHandler->handle(
             new CreateInvoiceCommand(
-                $input['customer_name'],
-                $input['customer_email'],
-                $input['lines']
+                $validated['customer_name'],
+                $validated['customer_email'],
+                $validated['lines'] ?? []
             )
         );
 
@@ -62,7 +71,7 @@ final readonly class InvoiceController
             );
         } catch (InvoiceNotFoundException) {
             throw new NotFoundHttpException("Invoice with ID {$invoiceId} does not exist.");
-        } catch (InvalidInvoiceStatusTransitionException) {
+        } catch (InvalidInvoiceStatusTransitionException|InvalidInvoiceOperationException) {
             throw new ConflictHttpException("Invoice with ID {$invoiceId} cannot be sent because of its status");
         }
 

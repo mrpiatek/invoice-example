@@ -76,7 +76,7 @@ final class Invoice
         $this->lines[] = $line;
     }
 
-    public function send(): void
+    public function assertSendable(): void
     {
         if ($this->status !== StatusEnum::Draft) {
             throw new InvalidInvoiceStatusTransitionException(
@@ -85,7 +85,7 @@ final class Invoice
         }
 
         if ($this->lines === []) {
-            throw new InvalidInvoiceStatusTransitionException(
+            throw new InvalidInvoiceOperationException(
                 'An invoice must contain at least one product line.'
             );
         }
@@ -98,13 +98,19 @@ final class Invoice
             }
         }
 
+    }
+
+    public function markAsSending(): void
+    {
+        $this->assertSendable();
+
         $this->status = StatusEnum::Sending;
     }
 
     public function markAsSentToClient(): void
     {
         if ($this->status !== StatusEnum::Sending) {
-            throw new InvalidInvoiceOperationException(
+            throw new InvalidInvoiceStatusTransitionException(
                 'Only an invoice in sending status can be marked as sent.'
             );
         }

@@ -9,6 +9,8 @@ use Modules\Invoices\Domain\Model\Customer;
 use Modules\Invoices\Domain\Model\Invoice;
 use Modules\Invoices\Domain\Model\InvoiceId;
 use Modules\Invoices\Domain\Model\InvoiceProductLine;
+use Modules\Invoices\Domain\Model\InvoiceProductLineId;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class InvoiceTest extends TestCase
@@ -38,45 +40,56 @@ class InvoiceTest extends TestCase
         $this->assertSame(0, $invoice->totalPrice);
     }
 
-    public function test_invoice_can_only_be_sent_in_draft_status(): void
+    public function test_invoice_can_be_sent_in_draft_status(): void
     {
-        $invoice = Invoice::create(
-            InvoiceId::generate(),
-            new Customer('Jane', 'jane@example.com'),
-            [
-                new InvoiceProductLine(
-                    'Laptop',
-                    1,
-                    1200
-                ),
-            ],
-        );
+        $invoice = $this->createInvoiceWithValidLine();
 
-        $invoice->send();
+        $invoice->markAsSending();
 
         $this->assertSame(
             StatusEnum::Sending,
             $invoice->status
         );
+    }
+
+    public function test_invoice_cannot_be_sent_when_already_sending(): void
+    {
+        $invoice = $this->createInvoiceWithValidLine();
+
+        $invoice->markAsSending();
 
         $this->expectException(
             InvalidInvoiceStatusTransitionException::class
         );
 
-        $invoice->send();
+        $invoice->markAsSending();
+    }
 
-        $this->assertSame(
-            StatusEnum::Sending,
-            $invoice->status
-        );
+    public function test_invoice_cannot_be_sent_when_already_sent_to_client(): void
+    {
+        $invoice = $this->createInvoiceWithValidLine();
 
+        $invoice->markAsSending();
         $invoice->markAsSentToClient();
 
+        $this->assertSame(
+            StatusEnum::SentToClient,
+            $invoice->status
+        );
+
         $this->expectException(
             InvalidInvoiceStatusTransitionException::class
         );
 
-        $invoice->send();
+        $invoice->markAsSending();
+    }
+
+    public function test_sending_invoice_can_be_marked_as_sent_to_client(): void
+    {
+        $invoice = $this->createInvoiceWithValidLine();
+
+        $invoice->markAsSending();
+        $invoice->markAsSentToClient();
 
         $this->assertSame(
             StatusEnum::SentToClient,
@@ -84,33 +97,15 @@ class InvoiceTest extends TestCase
         );
     }
 
-    public function test_only_sending_invoice_can_be_marked_as_sent(): void
+    public function test_invoice_cannot_be_marked_as_sent_to_client_when_invoice_is_in_draft_status(): void
     {
-        $invoice = Invoice::create(
-            InvoiceId::generate(),
-            new Customer('Jane', 'jane@example.com'),
-            [
-                new InvoiceProductLine(
-                    'Laptop',
-                    1,
-                    1200
-                ),
-            ],
-        );
+        $invoice = $this->createInvoiceWithValidLine();
 
         $this->expectException(
-            InvalidInvoiceOperationException::class
+            InvalidInvoiceStatusTransitionException::class
         );
 
         $invoice->markAsSentToClient();
-
-        $invoice->send();
-        $invoice->markAsSentToClient();
-
-        $this->assertSame(
-            StatusEnum::SentToClient,
-            $invoice->status
-        );
     }
 
     public function test_empty_invoice_cannot_be_sent(): void
@@ -120,62 +115,98 @@ class InvoiceTest extends TestCase
             new Customer('Jane', 'jane@example.com'),
         );
 
-        $this->expectException(InvalidInvoiceStatusTransitionException::class);
-
-        $invoice->send();
-
-        $invoice->addLine(new InvoiceProductLine(
-            'Laptop',
-            1,
-            1200
-        ));
-
-        $invoice->send();
-
-        $this->assertSame(
-            StatusEnum::Sending,
-            $invoice->status
+        $this->expectException(
+            InvalidInvoiceOperationException::class
         );
+
+        $invoice->markAsSending();
     }
 
-    public function test_invoice_can_be_sent_only_with_lines_both_quantity_and_price_as_positive_numbers(): void
-    {
-        $invoice = Invoice::create(
-            InvoiceId::generate(),
-            new Customer('Jane', 'jane@example.com'),
-            [new InvoiceProductLine(
-                'Schrodinger\'s Laptop',
-                0,
-                1200
-            )]
-        );
-
-        $this->expectException(InvalidInvoiceOperationException::class);
-
-        $invoice->send();
+    #[DataProvider('invalidProductLineProvider')]
+    public function test_invoice_can_be_sent_only_with_lines_both_quantity_and_price_as_positive_numbers(
+        int $quantity,
+        int $price
+    ): void {
+        $invoiceId = InvoiceId::generate();
 
         $invoice = Invoice::create(
-            InvoiceId::generate(),
-            new Customer('Jane', 'jane@example.com'),
-            [new InvoiceProductLine(
-                'Free Laptop',
-                1,
-                0
-            )]
-        );
-
-        $this->expectException(InvalidInvoiceOperationException::class);
-
-        $invoice->send();
-    }
-
-    public function test_lines_can_be_added_only_to_draft_invoice(): void
-    {
-        $invoice = Invoice::create(
-            InvoiceId::generate(),
+            $invoiceId,
             new Customer('Jane', 'jane@example.com'),
             [
-                new InvoiceProductLine(
+                InvoiceProductLine::create(
+                    InvoiceProductLineId::generate(),
+                    $invoiceId,
+                    'Schrodinger\'s Laptop',
+                    $quantity,
+                    $price
+                ),
+            ]
+        );
+
+        $this->expectException(
+            InvalidInvoiceOperationException::class
+        );
+
+        $invoice->markAsSending();
+    }
+
+    public static function invalidProductLineProvider(): iterable
+    {
+        yield 'quantity is zero' => [
+            'quantity' => 0,
+            'price' => 1200,
+        ];
+
+        yield 'price is zero' => [
+            'quantity' => 1,
+            'price' => 0,
+        ];
+
+        yield 'quantity is negative' => [
+            'quantity' => -1,
+            'price' => 1200,
+        ];
+
+        yield 'price is negative' => [
+            'quantity' => 1,
+            'price' => -1200,
+        ];
+    }
+
+    public function test_lines_can_be_added_to_draft_invoice(): void
+    {
+        $invoiceId = InvoiceId::generate();
+
+        $invoice = Invoice::create(
+            $invoiceId,
+            new Customer('Jane', 'jane@example.com'),
+        );
+
+        $invoice->addLine(
+            InvoiceProductLine::create(
+                InvoiceProductLineId::generate(),
+                $invoiceId,
+                'Laptop',
+                1,
+                1200
+            )
+        );
+
+        $this->assertCount(1, $invoice->lines);
+        $this->assertSame(1200, $invoice->totalPrice);
+    }
+
+    public function test_lines_cannot_be_added_when_invoice_is_sending(): void
+    {
+        $invoiceId = InvoiceId::generate();
+
+        $invoice = Invoice::create(
+            $invoiceId,
+            new Customer('Jane', 'jane@example.com'),
+            [
+                InvoiceProductLine::create(
+                    InvoiceProductLineId::generate(),
+                    $invoiceId,
                     'Laptop',
                     1,
                     1200
@@ -183,29 +214,41 @@ class InvoiceTest extends TestCase
             ]
         );
 
-        $invoice->send();
+        $invoice->markAsSending();
 
-        $this->expectException(InvalidInvoiceOperationException::class);
+        $this->expectException(
+            InvalidInvoiceOperationException::class
+        );
 
-        $invoice->addLine(new InvoiceProductLine(
-            'Another Laptop',
-            1,
-            1300
-        ));
+        $invoice->addLine(
+            InvoiceProductLine::create(
+                InvoiceProductLineId::generate(),
+                $invoiceId,
+                'Another Laptop',
+                1,
+                1300
+            )
+        );
     }
 
     public function test_total_price(): void
     {
+        $invoiceId = InvoiceId::generate();
+
         $invoice = Invoice::create(
-            InvoiceId::generate(),
+            $invoiceId,
             new Customer('Jane', 'jane@example.com'),
             [
-                new InvoiceProductLine(
+                InvoiceProductLine::create(
+                    InvoiceProductLineId::generate(),
+                    $invoiceId,
                     'Accessories',
                     4,
                     45
                 ),
-                new InvoiceProductLine(
+                InvoiceProductLine::create(
+                    InvoiceProductLineId::generate(),
+                    $invoiceId,
                     'Laptop',
                     1,
                     1200
@@ -214,5 +257,24 @@ class InvoiceTest extends TestCase
         );
 
         $this->assertSame(1380, $invoice->totalPrice);
+    }
+
+    private function createInvoiceWithValidLine(): Invoice
+    {
+        $invoiceId = InvoiceId::generate();
+
+        return Invoice::create(
+            $invoiceId,
+            new Customer('Jane', 'jane@example.com'),
+            [
+                InvoiceProductLine::create(
+                    InvoiceProductLineId::generate(),
+                    $invoiceId,
+                    'Laptop',
+                    1,
+                    1200
+                ),
+            ],
+        );
     }
 }

@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Modules\Invoices\Infrastructure\Persistence;
 
-use App\Invoice;
-use App\InvoiceProductLine;
 use Illuminate\Support\Facades\DB;
 use Modules\Invoices\Domain\Enums\StatusEnum;
 use Modules\Invoices\Domain\Model\Customer;
@@ -15,6 +13,8 @@ use Modules\Invoices\Domain\Model\InvoiceProductLine as InvoiceProductLineModel;
 use Modules\Invoices\Domain\Model\InvoiceProductLineId;
 use Modules\Invoices\Domain\Repository\InvoiceRepositoryInterface;
 use Modules\Invoices\Infrastructure\Exception\InvoiceNotFoundException;
+use Modules\Invoices\Infrastructure\Persistence\Entity\Invoice;
+use Modules\Invoices\Infrastructure\Persistence\Entity\InvoiceProductLine;
 
 final class InvoiceRepository implements InvoiceRepositoryInterface
 {
