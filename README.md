@@ -14,6 +14,10 @@ See `./src/Modules/Invoices/`.
 
 > If you are using docker in rootless mode you might need to modify the `.env` file's `APP_PORT` with different value (for example `APP_PORT=8080`)
 
+# OpenAPI
+
+This project includes `dedoc/scramble` as an OpenAPI documentation provider. Visit http://localhost:8080/docs/api to view the docs.
+
 # Design decisions and reasoning
 
 ## Invoice lines can only be modified in `draft` status
@@ -44,3 +48,5 @@ Validation is split between HTTP validation and Domain validation. HTTP validati
 
 The current locking mechanisms mitigates multiple requests trying to send one invoice but does not quarantee agains fast webhook callback observing an invoice still in `draft` state.
 In order to prevent this we would need a new status for Invoice that would denote failed sending (and necessary transition rules) so that we could immidiately mark Invoice as `sent-to-client`, try using the Notify Provider and on failure set Invoice status to `failed-to-send` and act accordingly.
+
+## Removed Redis from the project in effort to minimize its footprint
