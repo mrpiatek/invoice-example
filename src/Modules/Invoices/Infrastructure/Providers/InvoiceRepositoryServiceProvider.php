@@ -14,9 +14,6 @@ final class InvoiceRepositoryServiceProvider extends ServiceProvider implements 
     public function register(): void
     {
         $this->app->scoped(InvoiceRepositoryInterface::class, InvoiceRepository::class);
-
-        // $this->app->singleton(InvoiceRepository::class, static fn ($app) => new InvoiceRepository(
-        // ));
     }
 
     /** @return array<class-string> */

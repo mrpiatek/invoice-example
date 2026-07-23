@@ -25,10 +25,12 @@ final class InvoiceRepository implements InvoiceRepositoryInterface
 
     public function save(InvoiceModel $invoice): void
     {
-        DB::transaction(static function () use ($invoice) {
+        DB::transaction(function () use ($invoice) {
             $invoiceEntity = Invoice::updateOrCreate(
                 [
                     'id' => $invoice->id,
+                ],
+                [
                     'customer_name' => $invoice->customer->name,
                     'customer_email' => $invoice->customer->email,
                     'status' => $invoice->status,
@@ -39,6 +41,8 @@ final class InvoiceRepository implements InvoiceRepositoryInterface
                 $invoiceEntity->lines()->updateOrCreate(
                     [
                         'id' => $lineItem->id,
+                    ],
+                    [
                         'invoice_id' => $invoice->id,
                         'name' => $lineItem->productName,
                         'quantity' => $lineItem->quantity,
